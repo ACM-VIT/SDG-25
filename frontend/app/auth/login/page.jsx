@@ -1,37 +1,40 @@
 "use client"
 
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { signIn, useSession } from "next-auth/react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
+  const { user, isLoading, needsRoleSelection } = useAuth()
+  const [isSigningIn, setIsSigningIn] = useState(false)
 
   useEffect(() => {
-    if (status === "authenticated") {
-      const storedUser = localStorage.getItem("user")
-      if (storedUser) {
-        const { role } = JSON.parse(storedUser)
-        if (role === "professor") router.push("/professor")
-        else if (role === "student") router.push("/student")
-        else router.push("/")
-      } else {
-        router.push("/")
-      }
+    if (status === "loading" || isLoading) return
+    if (status !== "authenticated" || !user) return
+
+    if (needsRoleSelection || !user.role) {
+      router.replace("/auth/choose-role")
+      return
     }
-  }, [status, router])
 
-  const handleGoogleSignIn = async (role) => {
+    router.replace(user.role === "professor" ? "/professor" : "/student")
+  }, [status, isLoading, user, needsRoleSelection, router])
+
+  const handleGoogleSignIn = async () => {
+    if (isSigningIn) return
+    setIsSigningIn(true)
     try {
-      localStorage.setItem("user", JSON.stringify({ role }))
-    } catch {}
-
-    await signIn("google", {
-      callbackUrl: `${window.location.origin}/${role}`,
-    })
+      await signIn("google", { callbackUrl: `${window.location.origin}/auth/choose-role` })
+    } catch (err) {
+      console.error("Google sign-in failed", err)
+    } finally {
+      setIsSigningIn(false)
+    }
   }
 
   return (
@@ -39,22 +42,16 @@ export default function LoginPage() {
       <Card className="w-full max-w-md p-8 text-center shadow-lg">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Sign In</h1>
         <p className="text-gray-600 mb-6">
-          Welcome to <span className="font-semibold">EduConnect</span> — choose your role
+          Welcome to <span className="font-semibold">EduConnect</span>
         </p>
 
         <div className="space-y-4">
           <Button
-            onClick={() => handleGoogleSignIn("professor")}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 font-semibold"
-          >
-            Sign in as Professor
-          </Button>
-
-          <Button
-            onClick={() => handleGoogleSignIn("student")}
+            onClick={() => handleGoogleSignIn()}
+            disabled={isSigningIn}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 font-semibold"
           >
-            Sign in as Student
+            {isSigningIn ? "Redirecting..." : "Sign in with Google"}
           </Button>
         </div>
 
