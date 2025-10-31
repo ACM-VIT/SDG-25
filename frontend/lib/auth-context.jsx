@@ -1,14 +1,64 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
+
+const STORAGE_KEY = "educonnect_user"
+const LEGACY_STORAGE_KEY = "user"
+const VALID_ROLES = new Set(["professor", "student"])
 
 const AuthContext = createContext(null)
 
+const readStoredUser = () => {
+  if (typeof window === "undefined") return null
+
+  const fromStorage =
+    window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY) ?? null
+
+  if (!fromStorage) return null
+
+  try {
+    const parsed = JSON.parse(fromStorage)
+    if (parsed && typeof parsed === "object") {
+      const parsedRole = typeof parsed.role === "string" ? parsed.role.toLowerCase() : null
+      const safeRole = parsedRole && VALID_ROLES.has(parsedRole) ? parsedRole : null
+      return {
+        id: parsed.id ?? null,
+        name: parsed.name ?? null,
+        email: parsed.email ?? null,
+        image: parsed.image ?? null,
+        role: safeRole,
+      }
+    }
+  } catch {}
+
+  return null
+}
+
+const persistUser = (value) => {
+  if (typeof window === "undefined") return
+  try {
+    if (value) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
+    if (window.localStorage.getItem(LEGACY_STORAGE_KEY)) window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+    if (window.localStorage.getItem("intendedRole")) window.localStorage.removeItem("intendedRole")
+  } catch {}
+}
+
+const clearStoredUser = () => {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+    if (window.localStorage.getItem(LEGACY_STORAGE_KEY)) window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+    if (window.localStorage.getItem("intendedRole")) window.localStorage.removeItem("intendedRole")
+  } catch {}
+}
+
 export function AuthProvider({ children }) {
   const { data: session, status } = useSession()
-  const [user, setUser] = useState(null)
-  const [isLoading, setIsLoading] = useState(status === "loading")
+  const initialUser = useMemo(() => (typeof window === "undefined" ? null : readStoredUser()), [])
+  const [user, setUser] = useState(initialUser)
+  const [isLoading, setIsLoading] = useState(true)
+  const [needsRoleSelection, setNeedsRoleSelection] = useState(() => Boolean(initialUser && !initialUser.role))
 
   useEffect(() => {
     if (status === "loading") {
@@ -16,63 +66,82 @@ export function AuthProvider({ children }) {
       return
     }
 
-    const stored = typeof window !== "undefined" ? localStorage.getItem("user") : null
-
-    if (session && session.user) {
-      let role
-if (stored) {
-  try {
-    const parsed = JSON.parse(stored)
-    role = parsed?.role
-  } catch {}
-}
-if (!role && typeof window !== "undefined") {
-  role = localStorage.getItem("intendedRole")
-  localStorage.removeItem("intendedRole")
-}
-
+    if (status === "authenticated" && session?.user) {
+      const cachedUser = readStoredUser()
+      const role = session.user.role ?? cachedUser?.role ?? null
 
       const sessionUser = {
-        id: session.user.email ?? session.user.name ?? "",
-        name: session.user.name ?? session.user.email ?? "",
-        email: session.user.email ?? "",
-        role,
+        id: session.user.id ?? session.user.email ?? cachedUser?.id ?? null,
+        name: session.user.name ?? cachedUser?.name ?? session.user.email ?? null,
+        email: session.user.email ?? cachedUser?.email ?? null,
+        image: session.user.image ?? cachedUser?.image ?? null,
+        role: VALID_ROLES.has(role) ? role : null,
       }
 
       setUser(sessionUser)
-      try {
-        localStorage.setItem("user", JSON.stringify(sessionUser))
-      } catch (e) {
-      }
-
+      setNeedsRoleSelection(!sessionUser.role)
+      persistUser(sessionUser)
       setIsLoading(false)
       return
     }
 
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored))
-      } catch (e) {
-        setUser(null)
-      }
-    } else {
-      setUser(null)
-    }
+    clearStoredUser()
+    setUser(null)
+    setNeedsRoleSelection(false)
     setIsLoading(false)
   }, [session, status])
 
-  const logout = async (options = { redirect: false }) => {
-    try {
-      localStorage.removeItem("user")
-    } catch (e) {}
-    setUser(null)
-    try {
-      await signOut(options)
-    } catch (e) {
-    }
-  }
+  useEffect(() => {
+    if (typeof window === "undefined") return
 
-  return <AuthContext.Provider value={{ user, isLoading, logout }}>{children}</AuthContext.Provider>
+    const handleStorage = (event) => {
+      if (!event.key || (event.key !== STORAGE_KEY && event.key !== LEGACY_STORAGE_KEY)) return
+
+      const storedUser = readStoredUser()
+      setUser(storedUser)
+      setNeedsRoleSelection(storedUser ? !storedUser.role : false)
+    }
+
+    window.addEventListener("storage", handleStorage)
+    return () => window.removeEventListener("storage", handleStorage)
+  }, [])
+
+  const logout = useCallback(
+    async (opts = { callbackUrl: "/" }) => {
+      clearStoredUser()
+      setUser(null)
+      setNeedsRoleSelection(false)
+
+      try {
+        await signOut(opts)
+      } catch (err) {
+        try {
+          window.location.href = opts?.callbackUrl || "/"
+        } catch {}
+      }
+    },
+    [signOut]
+  )
+
+  const updateRole = useCallback((role) => {
+    const normalizedRole = typeof role === "string" ? role.toLowerCase() : ""
+    if (!VALID_ROLES.has(normalizedRole)) return
+
+    setUser((prev) => {
+      if (!prev) return prev
+      const nextUser = { ...prev, role: normalizedRole }
+      persistUser(nextUser)
+      return nextUser
+    })
+    setNeedsRoleSelection(false)
+  }, [])
+
+  const contextValue = useMemo(
+    () => ({ user, isLoading, needsRoleSelection, logout, updateRole }),
+    [user, isLoading, needsRoleSelection, logout, updateRole]
+  )
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

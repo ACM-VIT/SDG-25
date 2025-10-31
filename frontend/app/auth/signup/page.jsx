@@ -21,11 +21,7 @@ export default function SignUpPage() {
   if (!role) return null
 
   const handleGoogleSignIn = async () => {
-    const destination = role === "professor" ? "/professor" : "/student"
-    try {
-      localStorage.setItem("user", JSON.stringify({ role }))
-    } catch {}
-    await signIn("google", { callbackUrl: `${window.location.origin}${destination}` })
+    await signIn("google", { callbackUrl: `${window.location.origin}/auth/choose-role` })
   }
 
   return (
