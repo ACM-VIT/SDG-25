@@ -1,14 +1,16 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 
 export default function ProfessorNav({ professor }) {
-  const router = useRouter()
+  const { user, logout } = useAuth()
 
-  const handleLogout = () => {
-    router.push("/")
+  const handleLogout = async () => {
+    await logout({ callbackUrl: "/" })
   }
+
+  const display = professor ?? user
 
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm">
@@ -19,8 +21,8 @@ export default function ProfessorNav({ professor }) {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-800">{professor?.name}</p>
-            <p className="text-xs text-gray-600">{professor?.email}</p>
+            <p className="text-sm font-medium text-gray-800">{display?.name}</p>
+            <p className="text-xs text-gray-600">{display?.email}</p>
           </div>
           <Button
             onClick={handleLogout}
