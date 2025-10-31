@@ -1,52 +1,82 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
+import { useSession, signOut } from "next-auth/react"
 
-const AuthContext = createContext(undefined)
+const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
+  const { data: session, status } = useSession()
   const [user, setUser] = useState(null)
-  const [token, setToken] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(status === "loading")
 
   useEffect(() => {
-    // Load user from localStorage
-    const storedUser = localStorage.getItem("user")
-    const storedToken = localStorage.getItem("token")
-
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser))
-      setToken(storedToken)
-    } else {
-      const dummyProfessor = {
-        id: "prof1",
-        name: "Mr. Sharma",
-        email: "sharma@school.com",
-        role: "professor",
-      }
-      setUser(dummyProfessor)
-      setToken("dummy-token-prof1")
-      localStorage.setItem("user", JSON.stringify(dummyProfessor))
-      localStorage.setItem("token", "dummy-token-prof1")
+    if (status === "loading") {
+      setIsLoading(true)
+      return
     }
 
-    setIsLoading(false)
-  }, [])
+    const stored = typeof window !== "undefined" ? localStorage.getItem("user") : null
 
-  const logout = () => {
+    if (session && session.user) {
+      let role
+if (stored) {
+  try {
+    const parsed = JSON.parse(stored)
+    role = parsed?.role
+  } catch {}
+}
+if (!role && typeof window !== "undefined") {
+  role = localStorage.getItem("intendedRole")
+  localStorage.removeItem("intendedRole")
+}
+
+
+      const sessionUser = {
+        id: session.user.email ?? session.user.name ?? "",
+        name: session.user.name ?? session.user.email ?? "",
+        email: session.user.email ?? "",
+        role,
+      }
+
+      setUser(sessionUser)
+      try {
+        localStorage.setItem("user", JSON.stringify(sessionUser))
+      } catch (e) {
+      }
+
+      setIsLoading(false)
+      return
+    }
+
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored))
+      } catch (e) {
+        setUser(null)
+      }
+    } else {
+      setUser(null)
+    }
+    setIsLoading(false)
+  }, [session, status])
+
+  const logout = async (options = { redirect: false }) => {
+    try {
+      localStorage.removeItem("user")
+    } catch (e) {}
     setUser(null)
-    setToken(null)
-    localStorage.removeItem("user")
-    localStorage.removeItem("token")
+    try {
+      await signOut(options)
+    } catch (e) {
+    }
   }
 
-  return <AuthContext.Provider value={{ user, token, logout, isLoading }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, isLoading, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within AuthProvider")
-  }
-  return context
+  const ctx = useContext(AuthContext)
+  if (ctx === null) throw new Error("useAuth must be used within AuthProvider")
+  return ctx
 }
