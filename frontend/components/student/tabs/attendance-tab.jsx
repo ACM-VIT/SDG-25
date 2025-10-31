@@ -1,13 +1,26 @@
 "use client"
 
-import { useState } from "react"
-import { useAuth } from "@/lib/auth-context"
+import { useState, useEffect } from "react"
 import { dummyAttendance } from "@/lib/dummy-data"
+import { attendanceStorage } from "@/lib/storage"
 import { Card } from "@/components/ui/card"
 
-export default function StudentAttendanceTab( {classId }) {
-  const { user } = useAuth()
-  const [attendance] = useState(dummyAttendance.filter((a) => a.classId === classId && a.studentId === user?.id))
+// Hardcoded student ID
+const STUDENT_ID = "student1"
+
+export default function StudentAttendanceTab({ classId }) {
+  const [attendance, setAttendance] = useState([])
+
+  useEffect(() => {
+    // Load attendance from storage and dummy data
+    const storedAttendance = attendanceStorage.getByStudent(classId, STUDENT_ID)
+    const dummyStudentAttendance = dummyAttendance.filter(
+      (a) => a.classId === classId && a.studentId === STUDENT_ID
+    )
+    
+    const allAttendance = [...dummyStudentAttendance, ...storedAttendance]
+    setAttendance(allAttendance)
+  }, [classId])
 
   const present = attendance.filter((a) => a.status === "present").length
   const absent = attendance.filter((a) => a.status === "absent").length

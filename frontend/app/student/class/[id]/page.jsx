@@ -2,44 +2,48 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
 import { dummyClasses } from "@/lib/dummy-data"
+import { classStorage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import StudentNav from "@/components/student-nav"
 import StudentClassTabs from "@/components/student/class-tabs"
 
+const STUDENT = {
+  id: "student1",
+  name: "John Doe",
+  email: "john@student.com",
+}
+
 export default function StudentClassPage() {
   const router = useRouter()
   const params = useParams()
-  const { user, isLoading } = useAuth()
   const classId = params.id 
 
   const [classData, setClassData] = useState(null)
   const [activeTab, setActiveTab] = useState("overview")
 
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== "student")) {
-      router.push("/auth/login")
-      return
-    }
-
     if (classId) {
-      const cls = dummyClasses.find((c) => c.id === classId)
-      if (cls && cls.students.includes(user?.id || "")) {
+      let cls = classStorage.getById(classId)
+      if (!cls) {
+        cls = dummyClasses.find((c) => c.id === classId)
+      }
+      
+      if (cls && cls.students.includes(STUDENT.id)) {
         setClassData(cls)
       } else {
         router.push("/student")
       }
     }
-  }, [classId, user, isLoading, router])
+  }, [classId, router])
 
-  if (isLoading || !classData) {
+  if (!classData) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <StudentNav />
+      <StudentNav student={STUDENT} />
 
       <main className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="mb-8">

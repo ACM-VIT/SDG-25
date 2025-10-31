@@ -2,18 +2,30 @@
 
 import React from "react"
 
-import { useState } from "react"
-import { useAuth } from "@/lib/auth-context"
+import { useState, useEffect } from "react"
 import { dummyAnnouncements } from "@/lib/dummy-data"
+import { announcementStorage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
+const PROFESSOR_NAME = "Mr. Sharma"
+
 export default function AnnouncementTab({ classId }) {
-  const { user } = useAuth()
-  const [announcements, setAnnouncements] = useState(dummyAnnouncements.filter((a) => a.classId === classId))
+  const [announcements, setAnnouncements] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({ title: "", content: "" })
+
+  useEffect(() => {
+    loadAnnouncements()
+  }, [classId])
+
+  const loadAnnouncements = () => {
+    const storedAnnouncements = announcementStorage.getByClass(classId)
+    const dummyClassAnnouncements = dummyAnnouncements.filter((a) => a.classId === classId)
+    const allAnnouncements = [...dummyClassAnnouncements, ...storedAnnouncements]
+    setAnnouncements(allAnnouncements)
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -23,15 +35,9 @@ export default function AnnouncementTab({ classId }) {
       return
     }
 
-    const newAnnouncement = {
-      id: Date.now().toString(),
-      classId,
-      title: formData.title,
-      content: formData.content,
-      createdBy: user?.name || "Unknown",
-      createdAt: new Date(),
-    }
-    setAnnouncements([newAnnouncement, ...announcements])
+    announcementStorage.create(classId, formData.title, formData.content, PROFESSOR_NAME)
+    
+    loadAnnouncements()
     setFormData({ title: "", content: "" })
     setShowForm(false)
   }
