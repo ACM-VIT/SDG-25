@@ -3,15 +3,28 @@
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { dummyClasses } from "@/lib/dummy-data"
+import { classStorage } from "@/lib/storage"
 import Link from "next/link"
 
 export default function StudentClassList({ studentId }) {
   const [classes, setClasses] = useState([])
 
   useEffect(() => {
-    const studentClasses = dummyClasses.filter((c) => c.students.includes(studentId))
-    setClasses(studentClasses)
-    console.log(studentId)
+    // Get classes from storage that student has joined
+    const storedClasses = classStorage.getStudentClasses(studentId)
+    
+    // Also get from dummy data
+    const dummyStudentClasses = dummyClasses.filter((c) => c.students.includes(studentId))
+    
+    // Combine both arrays and remove duplicates
+    const allClasses = [...dummyStudentClasses, ...storedClasses]
+    const uniqueClasses = Array.from(new Map(allClasses.map(c => [c.id, c])).values())
+    
+    // Sort by join date (newest first)
+    uniqueClasses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    
+    setClasses(uniqueClasses)
+    console.log('Student classes loaded:', uniqueClasses)
   }, [studentId])
 
   if (classes.length === 0) {

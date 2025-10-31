@@ -1,11 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { dummyNotes } from "@/lib/dummy-data"
+import { noteStorage } from "@/lib/storage"
 import { Card } from "@/components/ui/card"
 
-export default function StudentNotesTab({classId }) {
-  const [notes] = useState(dummyNotes.filter((n) => n.classId === classId))
+export default function StudentNotesTab({ classId }) {
+  const [notes, setNotes] = useState([])
+
+  useEffect(() => {
+    // Load from storage and dummy data
+    const storedNotes = noteStorage.getByClass(classId)
+    const dummyClassNotes = dummyNotes.filter((n) => n.classId === classId)
+    const allNotes = [...dummyClassNotes, ...storedNotes]
+    setNotes(allNotes)
+  }, [classId])
 
   return (
     <div className="space-y-6">

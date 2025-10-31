@@ -1,16 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { dummyQuizzes } from "@/lib/dummy-data"
+import { quizStorage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
-export default function StudentQuizTab( {classId }) {
-  const [quizzes] = useState(dummyQuizzes.filter((q) => q.classId === classId))
+export default function StudentQuizTab({ classId }) {
+  const [quizzes, setQuizzes] = useState([])
   const [selectedQuiz, setSelectedQuiz] = useState(null)
   const [answers, setAnswers] = useState([])
   const [submitted, setSubmitted] = useState(false)
   const [score, setScore] = useState(0)
+
+  useEffect(() => {
+    // Load from storage and dummy data
+    const storedQuizzes = quizStorage.getByClass(classId)
+    const dummyClassQuizzes = dummyQuizzes.filter((q) => q.classId === classId)
+    const allQuizzes = [...dummyClassQuizzes, ...storedQuizzes]
+    setQuizzes(allQuizzes)
+  }, [classId])
 
   const handleStartQuiz = (quiz) => {
     setSelectedQuiz(quiz)

@@ -2,43 +2,48 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
 import { dummyClasses } from "@/lib/dummy-data"
+import { classStorage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import ProfessorNav from "@/components/professor-nav"
 import ClassTabs from "@/components/professor/class-tabs"
 
+const PROFESSOR = {
+  id: "prof1",
+  name: "Mr. Sharma",
+  email: "sharma@school.com",
+}
+
 export default function ProfessorClassPage() {
   const router = useRouter()
   const params = useParams()
-  const { user, isLoading } = useAuth()
   const classId = params.id 
 
   const [classData, setClassData] = useState(null)
   const [activeTab, setActiveTab] = useState("overview")
 
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== "professor")) {
-      router.push("/auth/login")
-      return
-    }
     if (classId) {
-      const cls = dummyClasses.find((c) => c.id === classId)
-      if (cls && cls.professorId === user?.id) {
+      let cls = classStorage.getById(classId)
+      if (!cls) {
+        cls = dummyClasses.find((c) => c.id === classId)
+      }
+      
+      if (cls && cls.professorId === PROFESSOR.id) {
         setClassData(cls)
       } else {
         router.push("/professor")
       }
     }
-  }, [classId, user, isLoading, router])
+  }, [classId, router])
 
-  if (isLoading || !classData) {
+  if (!classData) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ProfessorNav />
+      <ProfessorNav professor={PROFESSOR} />
 
       <main className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="mb-8">

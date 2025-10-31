@@ -1,13 +1,15 @@
 "use client"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { dummyClasses } from "@/lib/dummy-data"
+import { classStorage } from "@/lib/storage"
 import StudentNotesTab from "./tabs/notes-tab"
 import StudentAttendanceTab from "./tabs/attendance-tab"
 import StudentQuizTab from "./tabs/quiz-tab"
 import StudentAnnouncementTab from "./tabs/announcement-tab"
 
-export default function StudentClassTabs( {classId, activeTab, setActiveTab} ) {
+export default function StudentClassTabs({ classId, activeTab, setActiveTab }) {
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "notes", label: "Notes" },
@@ -48,8 +50,21 @@ export default function StudentClassTabs( {classId, activeTab, setActiveTab} ) {
   )
 }
 
-function StudentOverviewTab({classId}) {
-  const cls = dummyClasses.find((c) => c.id === classId)
+function StudentOverviewTab({ classId }) {
+  const [classData, setClassData] = useState(null)
+
+  useEffect(() => {
+    // Try to get from storage first, then dummy data
+    let cls = classStorage.getById(classId)
+    if (!cls) {
+      cls = dummyClasses.find((c) => c.id === classId)
+    }
+    setClassData(cls)
+  }, [classId])
+
+  if (!classData) {
+    return <Card className="p-6"><p>Loading...</p></Card>
+  }
 
   return (
     <Card className="p-6">
@@ -57,12 +72,21 @@ function StudentOverviewTab({classId}) {
       <div className="grid md:grid-cols-2 gap-6">
         <div>
           <p className="text-gray-600 text-sm">Total Students</p>
-          <p className="text-3xl font-bold text-green-600">{cls?.students.length || 0}</p>
+          <p className="text-3xl font-bold text-green-600">{classData.students?.length || 0}</p>
         </div>
         <div>
           <p className="text-gray-600 text-sm">Professor</p>
-          <p className="text-lg font-semibold text-gray-800">{cls?.professorName}</p>
+          <p className="text-lg font-semibold text-gray-800">{classData.professorName}</p>
         </div>
+      </div>
+      
+      {/* Class Info */}
+      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <h3 className="font-bold text-gray-800 mb-2">Class Information</h3>
+        <p className="text-sm text-gray-700">
+          You are enrolled in <strong>{classData.name}</strong> taught by <strong>{classData.professorName}</strong>.
+          There are currently <strong>{classData.students?.length || 0}</strong> students in this class.
+        </p>
       </div>
     </Card>
   )

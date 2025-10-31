@@ -1,11 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { dummyAnnouncements } from "@/lib/dummy-data"
+import { announcementStorage } from "@/lib/storage"
 import { Card } from "@/components/ui/card"
 
-export default function StudentAnnouncementTab({classId}) {
-  const [announcements] = useState(dummyAnnouncements.filter((a) => a.classId === classId))
+export default function StudentAnnouncementTab({ classId }) {
+  const [announcements, setAnnouncements] = useState([])
+
+  useEffect(() => {
+    const loadAnnouncements = () => {
+      const storedAnnouncements = announcementStorage.getByClass(classId)
+      const dummyClassAnnouncements = dummyAnnouncements.filter((a) => a.classId === classId)
+      setAnnouncements([...storedAnnouncements, ...dummyClassAnnouncements])
+    }
+
+    loadAnnouncements()
+  }, [classId])
 
   return (
     <div className="space-y-6">
