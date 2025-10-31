@@ -7,12 +7,7 @@ import { classStorage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import ProfessorNav from "@/components/professor-nav"
 import ClassTabs from "@/components/professor/class-tabs"
-
-const PROFESSOR = {
-  id: "prof1",
-  name: "Mr. Sharma",
-  email: "sharma@school.com",
-}
+import { useAuth } from "@/lib/auth-context"
 
 export default function ProfessorClassPage() {
   const router = useRouter()
@@ -21,21 +16,46 @@ export default function ProfessorClassPage() {
 
   const [classData, setClassData] = useState(null)
   const [activeTab, setActiveTab] = useState("overview")
+  const { user, isLoading, needsRoleSelection } = useAuth()
 
   useEffect(() => {
-    if (classId) {
-      let cls = classStorage.getById(classId)
-      if (!cls) {
-        cls = dummyClasses.find((c) => c.id === classId)
-      }
-      
-      if (cls && cls.professorId === PROFESSOR.id) {
-        setClassData(cls)
-      } else {
-        router.push("/professor")
-      }
+    if (isLoading) return
+
+    if (!user) {
+      router.replace("/auth/login")
+      return
     }
-  }, [classId, router])
+
+    if (needsRoleSelection || !user.role) {
+      router.replace("/auth/choose-role")
+      return
+    }
+
+    if (user.role !== "professor") {
+      router.replace(user.role === "student" ? "/student" : "/")
+    }
+  }, [user, isLoading, needsRoleSelection, router])
+
+  useEffect(() => {
+    if (!classId || !user || user.role !== "professor") return
+
+    let cls = classStorage.getById(classId)
+    if (!cls) {
+      cls = dummyClasses.find((c) => c.id === classId)
+    }
+
+    const isOwner = cls && (cls.professorId === user.id || cls.professorId === user.email)
+
+    if (isOwner) {
+      setClassData(cls)
+    } else {
+      router.replace("/professor")
+    }
+  }, [classId, user, router])
+
+  if (isLoading || needsRoleSelection || !user || user.role !== "professor") {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  }
 
   if (!classData) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
@@ -43,7 +63,7 @@ export default function ProfessorClassPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ProfessorNav professor={PROFESSOR} />
+      <ProfessorNav professor={user} />
 
       <main className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="mb-8">
