@@ -2,21 +2,35 @@
 
 import React from "react"
 
-import { useState } from "react"
-import { useAuth } from "@/lib/auth-context"
+import { useState, useEffect } from "react"
 import { dummyQuizzes } from "@/lib/dummy-data"
+import { quizStorage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
-export default function QuizTab( {classId} ) {
-  const { user } = useAuth()
-  const [quizzes, setQuizzes] = useState(dummyQuizzes.filter((q) => q.classId === classId))
+// Hardcoded professor name
+const PROFESSOR_NAME = "Mr. Sharma"
+
+export default function QuizTab({ classId }) {
+  const [quizzes, setQuizzes] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     questions: [{ question: "", options: ["", "", "", ""], correctAnswer: 0 }],
   })
+
+  useEffect(() => {
+    loadQuizzes()
+  }, [classId])
+
+  const loadQuizzes = () => {
+    // Load from storage and dummy data
+    const storedQuizzes = quizStorage.getByClass(classId)
+    const dummyClassQuizzes = dummyQuizzes.filter((q) => q.classId === classId)
+    const allQuizzes = [...dummyClassQuizzes, ...storedQuizzes]
+    setQuizzes(allQuizzes)
+  }
 
   const handleAddQuestion = () => {
     setFormData({
@@ -33,15 +47,11 @@ export default function QuizTab( {classId} ) {
       return
     }
 
-    const newQuiz = {
-      id: Date.now().toString(),
-      classId,
-      title: formData.title,
-      questions: formData.questions,
-      createdBy: user?.name || "Unknown",
-      createdAt: new Date(),
-    }
-    setQuizzes([...quizzes, newQuiz])
+    // Save to storage
+    quizStorage.create(classId, formData.title, formData.questions, PROFESSOR_NAME)
+    
+    // Reload quizzes
+    loadQuizzes()
     setFormData({
       title: "",
       questions: [{ question: "", options: ["", "", "", ""], correctAnswer: 0 }],

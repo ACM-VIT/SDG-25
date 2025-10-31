@@ -3,19 +3,23 @@
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { dummyClasses } from "@/lib/dummy-data"
+import { classStorage } from "@/lib/storage"
 import Link from "next/link"
 
 export default function ClassList({ professorId }) {
   const [classes, setClasses] = useState([])
 
   useEffect(() => {
-    // normalize types (string/number) to avoid mismatches
-    const pid = String(professorId)
-    const professorClasses = dummyClasses.filter((c) => String(c.professorId) === pid)
-    setClasses(professorClasses)
-    console.log("dummyClasses:", dummyClasses)
-    console.log("professorClasses:", professorClasses)
-    console.log("professorId:", professorId)
+    const storedClasses = classStorage.getProfessorClasses(professorId)
+    const dummyProfClasses = dummyClasses.filter((c) => String(c.professorId) === String(professorId))
+    
+    const allClasses = [...dummyProfClasses, ...storedClasses]
+    const uniqueClasses = Array.from(new Map(allClasses.map(c => [c.id, c])).values())
+    
+    uniqueClasses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    
+    setClasses(uniqueClasses)
+    console.log("Loaded classes:", uniqueClasses)
   }, [professorId])
 
   if (classes.length === 0) {
@@ -41,7 +45,7 @@ export default function ClassList({ professorId }) {
             </div>
             <div className="space-y-2 text-sm text-gray-600">
               <p>
-                Students: <span className="font-semibold text-gray-800">{cls.students.length}</span>
+                Students: <span className="font-semibold text-gray-800">{cls.students?.length || 0}</span>
               </p>
               <p>
                 Created:{" "}

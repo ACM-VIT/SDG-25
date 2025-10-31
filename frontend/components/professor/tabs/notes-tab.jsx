@@ -2,19 +2,31 @@
 
 import React from "react"
 
-import { useState } from "react"
-import { useAuth } from "@/lib/auth-context"
+import { useState, useEffect } from "react"
 import { dummyNotes } from "@/lib/dummy-data"
+import { noteStorage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
-export default function NotesTab( {classId} ) {
-  const { user } = useAuth()
-  const [notes, setNotes] = useState(dummyNotes.filter((n) => n.classId === classId))
+const PROFESSOR_NAME = "Mr. Sharma"
+
+export default function NotesTab({ classId }) {
+  const [notes, setNotes] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({ title: "", content: "" })
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    loadNotes()
+  }, [classId])
+
+  const loadNotes = () => {
+    const storedNotes = noteStorage.getByClass(classId)
+    const dummyClassNotes = dummyNotes.filter((n) => n.classId === classId)
+    const allNotes = [...dummyClassNotes, ...storedNotes]
+    setNotes(allNotes)
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -25,21 +37,16 @@ export default function NotesTab( {classId} ) {
       return
     }
 
-    const newNote = {
-      id: Date.now().toString(),
-      classId,
-      title: formData.title,
-      content: formData.content,
-      uploadedBy: user?.name || "Unknown",
-      uploadedAt: new Date(),
-    }
-    setNotes([...notes, newNote])
+    noteStorage.create(classId, formData.title, formData.content, PROFESSOR_NAME)
+    
+    loadNotes()
     setFormData({ title: "", content: "" })
     setShowForm(false)
   }
 
   const handleDelete = (noteId) => {
-    setNotes(notes.filter((n) => n.id !== noteId))
+    noteStorage.delete(noteId)
+    loadNotes()
   }
 
   return (

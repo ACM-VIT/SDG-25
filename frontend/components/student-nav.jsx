@@ -1,15 +1,12 @@
 "use client"
 
-import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
-export default function StudentNav() {
-  const { user, logout } = useAuth()
+export default function StudentNav({ student }) {
   const router = useRouter()
 
   const handleLogout = () => {
-    logout()
     router.push("/")
   }
 
@@ -22,8 +19,8 @@ export default function StudentNav() {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-800">{user?.name}</p>
-            <p className="text-xs text-gray-600">{user?.email}</p>
+            <p className="text-sm font-medium text-gray-800">{student?.name}</p>
+            <p className="text-xs text-gray-600">{student?.email}</p>
           </div>
           <Button
             onClick={handleLogout}
