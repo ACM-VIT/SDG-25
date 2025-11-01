@@ -1,18 +1,16 @@
 "use client"
 
-import React from "react"
-
-import { useState, useEffect } from "react"
-import { dummyQuizzes } from "@/lib/dummy-data"
-import { quizStorage } from "@/lib/storage"
+import { useSession } from "next-auth/react";
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
-// Hardcoded professor name
-const PROFESSOR_NAME = "Mr. Sharma"
+
 
 export default function QuizTab({ classId }) {
+  const { data: session } = useSession();
+  const professorName = session?.user?.name || "Unknown User";
   const [quizzes, setQuizzes] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
@@ -24,46 +22,80 @@ export default function QuizTab({ classId }) {
     loadQuizzes()
   }, [classId])
 
-  const loadQuizzes = () => {
-    // Load from storage and dummy data
-    const storedQuizzes = quizStorage.getByClass(classId)
-    const dummyClassQuizzes = dummyQuizzes.filter((q) => q.classId === classId)
-    const allQuizzes = [...dummyClassQuizzes, ...storedQuizzes]
-    setQuizzes(allQuizzes)
+  // Load quizzes from backend
+  const loadQuizzes = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz/${classId}`);
+      if (!res.ok) throw new Error("Failed to fetch quizzes")
+      const data = await res.json()
+      setQuizzes(data)
+    } catch (error) {
+      console.error("Error loading quizzes:", error)
+      setQuizzes([])
+    }
   }
 
   const handleAddQuestion = () => {
     setFormData({
       ...formData,
-      questions: [...formData.questions, { question: "", options: ["", "", "", ""], correctAnswer: 0 }],
+      questions: [
+        ...formData.questions,
+        { question: "", options: ["", "", "", ""], correctAnswer: 0 },
+      ],
     })
   }
 
-  const handleSubmit = (e) => {
+  // Submit quiz to backend
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.title.trim() || formData.questions.some((q) => !q.question.trim())) {
+    if (
+      !formData.title.trim() ||
+      formData.questions.some((q) => !q.question.trim())
+    ) {
       alert("Please fill in all fields")
       return
     }
 
-    // Save to storage
-    quizStorage.create(classId, formData.title, formData.questions, PROFESSOR_NAME)
-    
-    // Reload quizzes
-    loadQuizzes()
-    setFormData({
-      title: "",
-      questions: [{ question: "", options: ["", "", "", ""], correctAnswer: 0 }],
-    })
-    setShowForm(false)
+    const payload = {
+      classId,
+      title: formData.title,
+      questions: formData.questions,
+      professor: professorName,
+    }
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) throw new Error("Failed to create quiz")
+
+      await loadQuizzes()
+      setFormData({
+        title: "",
+        questions: [
+          { question: "", options: ["", "", "", ""], correctAnswer: 0 },
+        ],
+      })
+      setShowForm(false)
+      alert("Quiz created successfully!")
+    } catch (error) {
+      console.error("Error creating quiz:", error)
+      alert("Error saving quiz")
+    }
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">Quiz & Assignments</h2>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button
+          onClick={() => setShowForm(!showForm)}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
           {showForm ? "Cancel" : "+ Create Quiz"}
         </Button>
       </div>
@@ -72,11 +104,15 @@ export default function QuizTab({ classId }) {
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quiz Title</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Quiz Title
+              </label>
               <Input
                 type="text"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
                 placeholder="e.g., Chapter 5 Quiz"
                 className="w-full"
               />
@@ -85,7 +121,9 @@ export default function QuizTab({ classId }) {
             <div className="space-y-4">
               {formData.questions.map((q, qIdx) => (
                 <Card key={qIdx} className="p-4 bg-gray-50">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Question {qIdx + 1}</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Question {qIdx + 1}
+                  </label>
                   <Input
                     type="text"
                     value={q.question}
@@ -116,12 +154,16 @@ export default function QuizTab({ classId }) {
                   </div>
 
                   <div className="mt-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answer</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Correct Answer
+                    </label>
                     <select
                       value={q.correctAnswer}
                       onChange={(e) => {
                         const newQuestions = [...formData.questions]
-                        newQuestions[qIdx].correctAnswer = Number.parseInt(e.target.value)
+                        newQuestions[qIdx].correctAnswer = Number.parseInt(
+                          e.target.value
+                        )
                         setFormData({ ...formData, questions: newQuestions })
                       }}
                       className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -146,7 +188,10 @@ export default function QuizTab({ classId }) {
               + Add Question
             </Button>
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+            <Button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            >
               Create Quiz
             </Button>
           </form>
@@ -160,10 +205,16 @@ export default function QuizTab({ classId }) {
       ) : (
         <div className="space-y-4">
           {quizzes.map((quiz) => (
-            <Card key={quiz.id} className="p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-2">{quiz.title}</h3>
-              <p className="text-sm text-gray-600 mb-3">{quiz.questions.length} questions</p>
-              <p className="text-xs text-gray-500">Created {new Date(quiz.createdAt).toLocaleDateString()}</p>
+            <Card key={quiz._id} className="p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-2">
+                {quiz.title}
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                {quiz.questions.length} questions
+              </p>
+              <p className="text-xs text-gray-500">
+                Created {new Date(quiz.createdAt).toLocaleDateString()}
+              </p>
             </Card>
           ))}
         </div>
