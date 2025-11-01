@@ -1,34 +1,46 @@
 "use client"
 
 import React from "react"
-
 import { useState, useEffect } from "react"
-import { dummyNotes } from "@/lib/dummy-data"
-import { noteStorage } from "@/lib/storage"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
-const PROFESSOR_NAME = "Mr. Sharma"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function NotesTab({ classId }) {
+  const { data: session } = useSession();
+  const professorName = session?.user?.name || "Unknown Professor";
+  
   const [notes, setNotes] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({ title: "", content: "" })
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     loadNotes()
   }, [classId])
 
-  const loadNotes = () => {
-    const storedNotes = noteStorage.getByClass(classId)
-    const dummyClassNotes = dummyNotes.filter((n) => n.classId === classId)
-    const allNotes = [...dummyClassNotes, ...storedNotes]
-    setNotes(allNotes)
+  const loadNotes = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/notes/${classId}`)
+      const data = await response.json()
+      
+      if (response.ok) {
+        setNotes(data.notes || [])
+      } else {
+        console.error('Error fetching notes:', data.error)
+        setNotes([])
+      }
+    } catch (error) {
+      console.error('Error loading notes:', error)
+      setNotes([])
+    }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
 
@@ -37,16 +49,56 @@ export default function NotesTab({ classId }) {
       return
     }
 
-    noteStorage.create(classId, formData.title, formData.content, PROFESSOR_NAME)
-    
-    loadNotes()
-    setFormData({ title: "", content: "" })
-    setShowForm(false)
+    setLoading(true)
+
+    try {
+      const response = await fetch(`${API_URL}/api/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          classId,
+          title: formData.title,
+          content: formData.content,
+          professor: professorName,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        loadNotes()
+        setFormData({ title: "", content: "" })
+        setShowForm(false)
+      } else {
+        setError(data.error || 'Failed to upload note')
+      }
+    } catch (error) {
+      console.error('Error creating note:', error)
+      setError('Failed to upload note. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleDelete = (noteId) => {
-    noteStorage.delete(noteId)
-    loadNotes()
+  const handleDelete = async (noteId) => {
+    if (!confirm('Are you sure you want to delete this note?')) return
+
+    try {
+      const response = await fetch(`${API_URL}/api/notes/${noteId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        loadNotes()
+      } else {
+        alert('Failed to delete note')
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error)
+      alert('Failed to delete note')
+    }
   }
 
   return (
@@ -86,8 +138,8 @@ export default function NotesTab({ classId }) {
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">{error}</div>
             )}
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-              Upload Note
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
+              {loading ? 'Uploading...' : 'Upload Note'}
             </Button>
           </form>
         </Card>
@@ -100,16 +152,16 @@ export default function NotesTab({ classId }) {
       ) : (
         <div className="space-y-4">
           {notes.map((note) => (
-            <Card key={note.id} className="p-6">
+            <Card key={note._id} className="p-6">
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="text-lg font-bold text-gray-800">{note.title}</h3>
                   <p className="text-xs text-gray-500 mt-1">
-                    Uploaded {new Date(note.uploadedAt).toLocaleDateString()}
+                    Uploaded {new Date(note.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <Button
-                  onClick={() => handleDelete(note.id)}
+                  onClick={() => handleDelete(note._id)}
                   variant="outline"
                   className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent text-sm"
                 >
