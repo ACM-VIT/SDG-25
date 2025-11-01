@@ -140,7 +140,6 @@ router.get('/:id', async (req, res) => {
     
     const classData = await Class.findById(id);
     
-    console.log('Found class:', classData);
     
     if (!classData) {
       return res.status(404).json({ error: 'Class not found' });
