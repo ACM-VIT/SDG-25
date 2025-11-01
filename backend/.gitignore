@@ -1,2 +1,17 @@
+# dependencies
 node_modules/
+
+# environment variables
 .env
+.env.local
+.env.development
+.env.production
+
+# system files
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
