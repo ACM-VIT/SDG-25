@@ -26,7 +26,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// 📜 Get all quizzes for a class
+//  Get all quizzes for a class
 router.get("/:classId", async (req, res) => {
   try {
     const quizzes = await Quiz.find({ classId: req.params.classId }).sort({ createdAt: -1 });
