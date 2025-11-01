@@ -71,7 +71,7 @@ export default function ProfessorClassPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F1EBCA]">
       <ProfessorNav professor={user} />
 
       <main className="max-w-6xl mx-auto p-4 md:p-8">
@@ -79,13 +79,13 @@ export default function ProfessorClassPage() {
           <Button
             onClick={() => router.push("/professor")}
             variant="outline"
-            className="mb-4 bg-transparent text-blue-600 border-blue-200 hover:bg-blue-50"
+            className="mb-4 bg-transparent text-[#FFD801] border-blue-200 hover:bg-blue-50"
           >
             ← Back to Classes
           </Button>
           <h1 className="text-3xl font-bold text-gray-800">{classData.name}</h1>
           <p className="text-gray-600 mt-2">
-            Class Code: <span className="font-mono font-bold text-blue-600">{classData.code}</span>
+            Class Code: <span className="font-mono font-bold text-black">{classData.code}</span>
           </p>
         </div>
 

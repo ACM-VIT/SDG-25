@@ -12,13 +12,12 @@ export default function StudentClassTabs({ classId, classData, activeTab, setAct
     { id: "overview", label: "Overview" },
     { id: "notes", label: "Notes" },
     { id: "attendance", label: "Attendance" },
-    { id: "quiz", label: "Quiz/Assignments" },
+    { id: "quiz", label: "Quiz" },
     { id: "announcements", label: "Announcements" },
   ]
 
   return (
     <div>
-      {/* Tab Navigation */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
         {tabs.map((tab) => (
           <Button
@@ -27,8 +26,8 @@ export default function StudentClassTabs({ classId, classData, activeTab, setAct
             variant={activeTab === tab.id ? "default" : "outline"}
             className={`whitespace-nowrap ${
               activeTab === tab.id
-                ? "bg-green-600 hover:bg-green-700 text-white"
-                : "bg-transparent text-gray-700 border-gray-300 hover:bg-gray-100"
+                ? "bg-[#FFD801] hover:bg-yellow-700 text-white"
+                : "bg-transparent text-gray-700 border-gray-300 hover:bg-[#FBEFAF]"
             }`}
           >
             {tab.label}
@@ -36,7 +35,6 @@ export default function StudentClassTabs({ classId, classData, activeTab, setAct
         ))}
       </div>
 
-      {/* Tab Content */}
       <div>
         {activeTab === "overview" && <StudentOverviewTab classId={classId} classData={classData} />}
         {activeTab === "notes" && <StudentNotesTab classId={classId} />}
@@ -59,7 +57,7 @@ function StudentOverviewTab({ classId, classData }) {
       <div className="grid md:grid-cols-2 gap-6">
         <div>
           <p className="text-gray-600 text-sm">Total Students</p>
-          <p className="text-3xl font-bold text-green-600">{classData.students?.length || 0}</p>
+          <p className="text-3xl font-bold text-yellow-600">{classData.students?.length || 0}</p>
         </div>
         <div>
           <p className="text-gray-600 text-sm">Professor</p>
@@ -67,8 +65,7 @@ function StudentOverviewTab({ classId, classData }) {
         </div>
       </div>
       
-      {/* Class Info */}
-      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+      <div className="mt-6 p-4 bg-yellow-100 border border-green-200 rounded-lg">
         <h3 className="font-bold text-gray-800 mb-2">Class Information</h3>
         <p className="text-sm text-gray-700">
           You are enrolled in <strong>{classData.name}</strong> taught by <strong>{classData.professorName}</strong>.
