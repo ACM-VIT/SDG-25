@@ -1,13 +1,15 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { dummyClasses } from "@/lib/dummy-data"
+import { classStorage } from "@/lib/storage"
 import StudentNotesTab from "./tabs/notes-tab"
 import StudentAttendanceTab from "./tabs/attendance-tab"
 import StudentQuizTab from "./tabs/quiz-tab"
 import StudentAnnouncementTab from "./tabs/announcement-tab"
 
-export default function StudentClassTabs({ classId, classData, activeTab, setActiveTab }) {
+export default function StudentClassTabs({ classId, activeTab, setActiveTab }) {
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "notes", label: "Notes" },
@@ -38,7 +40,7 @@ export default function StudentClassTabs({ classId, classData, activeTab, setAct
 
       {/* Tab Content */}
       <div>
-        {activeTab === "overview" && <StudentOverviewTab classId={classId} classData={classData} />}
+        {activeTab === "overview" && <StudentOverviewTab classId={classId} />}
         {activeTab === "notes" && <StudentNotesTab classId={classId} />}
         {activeTab === "attendance" && <StudentAttendanceTab classId={classId} />}
         {activeTab === "quiz" && <StudentQuizTab classId={classId} />}
@@ -48,7 +50,18 @@ export default function StudentClassTabs({ classId, classData, activeTab, setAct
   )
 }
 
-function StudentOverviewTab({ classId, classData }) {
+function StudentOverviewTab({ classId }) {
+  const [classData, setClassData] = useState(null)
+
+  useEffect(() => {
+    // Try to get from storage first, then dummy data
+    let cls = classStorage.getById(classId)
+    if (!cls) {
+      cls = dummyClasses.find((c) => c.id === classId)
+    }
+    setClassData(cls)
+  }, [classId])
+
   if (!classData) {
     return <Card className="p-6"><p>Loading...</p></Card>
   }

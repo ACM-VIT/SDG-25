@@ -5,14 +5,14 @@ import React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { classAPI } from "@/lib/api/classes"
+import { classStorage } from "@/lib/storage"
 
 export default function JoinClassModal({ onClose, onClassJoined, studentId }) {
   const [classCode, setClassCode] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     setError("")
     setLoading(true)
@@ -30,13 +30,29 @@ export default function JoinClassModal({ onClose, onClassJoined, studentId }) {
     }
 
     try {
-      const joinedClass = await classAPI.joinClass(classCode.toUpperCase(), studentId)
-      console.log('Successfully joined class:', joinedClass)
+      const cls = classStorage.getByCode(classCode.toUpperCase())
+      if (!cls) {
+        setError("Invalid class code. Please check and try again.")
+        setLoading(false)
+        return
+      }
+
+      // Check if already joined
+      if (cls.students.includes(studentId)) {
+        setError("You have already joined this class")
+        setLoading(false)
+        return
+      }
+
+      // Join the class
+      classStorage.joinClass(cls.id, studentId)
+      console.log('Successfully joined class:', cls)
       
+      // Close modal and trigger refresh
       onClassJoined()
     } catch (err) {
       console.error('Error joining class:', err)
-      setError(err.message || "Failed to join class. Please try again.")
+      setError("Failed to join class. Please try again.")
       setLoading(false)
     }
   }

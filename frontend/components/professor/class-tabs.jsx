@@ -2,19 +2,23 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { dummyClasses } from '@/lib/dummy-data';
+import { classStorage } from '@/lib/storage';
 import NotesTab from './tabs/notes-tab';
 import AttendanceTab from './tabs/attendance-tab';
 import QuizTab from './tabs/quiz-tab';
 import AnnouncementTab from './tabs/announcement-tab';
 
-export default function ClassTabs({ classId, classData: initialClassData, activeTab, setActiveTab }) {
-  const [classData, setClassData] = useState(initialClassData);
+export default function ClassTabs({ classId, activeTab, setActiveTab }) {
+  const [classData, setClassData] = useState(null);
 
   useEffect(() => {
-    if (initialClassData) {
-      setClassData(initialClassData);
+    let cls = classStorage.getById(classId);
+    if (!cls) {
+      cls = dummyClasses.find((c) => c.id === classId);
     }
-  }, [initialClassData]);
+    setClassData(cls);
+  }, [classId]);
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -57,8 +61,21 @@ export default function ClassTabs({ classId, classData: initialClassData, active
   );
 }
 
-function OverviewTab({ classId, classData }) {
+function OverviewTab({ classId, classData: initialClassData }) {
+  const [classData, setClassData] = useState(initialClassData);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (initialClassData) {
+      setClassData(initialClassData);
+    } else {
+      let cls = classStorage.getById(classId);
+      if (!cls) {
+        cls = dummyClasses.find((c) => c.id === classId);
+      }
+      setClassData(cls);
+    }
+  }, [classId, initialClassData]);
 
   const copyCode = () => {
     if (classData?.code) {
