@@ -2,25 +2,49 @@
 
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
-import { dummyClasses } from "@/lib/dummy-data"
-import { classStorage } from "@/lib/storage"
+import { classAPI } from "@/lib/api/classes"
 import Link from "next/link"
 
 export default function ClassList({ professorId }) {
   const [classes, setClasses] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    const storedClasses = classStorage.getProfessorClasses(professorId)
-    const dummyProfClasses = dummyClasses.filter((c) => String(c.professorId) === String(professorId))
-    
-    const allClasses = [...dummyProfClasses, ...storedClasses]
-    const uniqueClasses = Array.from(new Map(allClasses.map(c => [c.id, c])).values())
-    
-    uniqueClasses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    
-    setClasses(uniqueClasses)
-    console.log("Loaded classes:", uniqueClasses)
+    async function fetchClasses() {
+      try {
+        setLoading(true)
+        const fetchedClasses = await classAPI.getProfessorClasses(professorId)
+        setClasses(fetchedClasses)
+        console.log("Loaded classes from DB:", fetchedClasses)
+      } catch (err) {
+        console.error("Error fetching classes:", err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (professorId) {
+      fetchClasses()
+    }
   }, [professorId])
+
+  if (loading) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-gray-600 text-lg">Loading classes...</p>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-red-600 text-lg">Error loading classes: {error}</p>
+      </Card>
+    )
+  }
 
   if (classes.length === 0) {
     return (
@@ -33,7 +57,7 @@ export default function ClassList({ professorId }) {
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
       {classes.map((cls) => (
-        <Link key={cls.id} href={`/professor/class/${cls.id}`}>
+        <Link key={cls._id || cls.id} href={`/professor/class/${cls._id || cls.id}`}>
           <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer h-full">
             <div className="flex justify-between items-start mb-4">
               <div>
