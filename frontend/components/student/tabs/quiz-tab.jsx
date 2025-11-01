@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { dummyQuizzes } from "@/lib/dummy-data"
-import { quizStorage } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function StudentQuizTab({ classId }) {
   const [quizzes, setQuizzes] = useState([])
@@ -12,14 +12,27 @@ export default function StudentQuizTab({ classId }) {
   const [answers, setAnswers] = useState([])
   const [submitted, setSubmitted] = useState(false)
   const [score, setScore] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Load from storage and dummy data
-    const storedQuizzes = quizStorage.getByClass(classId)
-    const dummyClassQuizzes = dummyQuizzes.filter((q) => q.classId === classId)
-    const allQuizzes = [...dummyClassQuizzes, ...storedQuizzes]
-    setQuizzes(allQuizzes)
+    loadQuizzes()
   }, [classId])
+
+  // Load quizzes from backend API
+  const loadQuizzes = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch(`${API_URL}/api/quiz/${classId}`)
+      if (!res.ok) throw new Error("Failed to fetch quizzes")
+      const data = await res.json()
+      setQuizzes(data)
+    } catch (error) {
+      console.error("Error loading quizzes:", error)
+      setQuizzes([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleStartQuiz = (quiz) => {
     setSelectedQuiz(quiz)
@@ -113,17 +126,24 @@ export default function StudentQuizTab({ classId }) {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800">Quiz & Assignments</h2>
 
-      {quizzes.length === 0 ? (
+      {loading ? (
+        <Card className="p-8 text-center">
+          <p className="text-gray-600">Loading quizzes...</p>
+        </Card>
+      ) : quizzes.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-gray-600">No quizzes available yet</p>
         </Card>
       ) : (
         <div className="space-y-4">
           {quizzes.map((quiz) => (
-            <Card key={quiz.id} className="p-6 flex justify-between items-center">
+            <Card key={quiz._id} className="p-6 flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-bold text-gray-800">{quiz.title}</h3>
                 <p className="text-sm text-gray-600 mt-1">{quiz.questions.length} questions</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  By {quiz.professor} • {new Date(quiz.createdAt).toLocaleDateString()}
+                </p>
               </div>
               <Button onClick={() => handleStartQuiz(quiz)} className="bg-green-600 hover:bg-green-700 text-white">
                 Start Quiz

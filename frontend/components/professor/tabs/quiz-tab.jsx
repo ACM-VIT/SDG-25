@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
-
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function QuizTab({ classId }) {
   const { data: session } = useSession();
@@ -25,9 +25,10 @@ export default function QuizTab({ classId }) {
   // Load quizzes from backend
   const loadQuizzes = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz/${classId}`);
+      const res = await fetch(`${API_URL}/api/quiz/${classId}`);
       if (!res.ok) throw new Error("Failed to fetch quizzes")
       const data = await res.json()
+      console.log(`Loaded ${data.length} quizzes for class ${classId}`)
       setQuizzes(data)
     } catch (error) {
       console.error("Error loading quizzes:", error)
@@ -64,15 +65,23 @@ export default function QuizTab({ classId }) {
       professor: professorName,
     }
 
+    console.log('Submitting quiz:', payload)
+
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quiz`, {
+      const res = await fetch(`${API_URL}/api/quiz`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
 
-      if (!res.ok) throw new Error("Failed to create quiz")
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.message || "Failed to create quiz")
+      }
 
+      const result = await res.json()
+      console.log('Quiz created successfully:', result)
+      
       await loadQuizzes()
       setFormData({
         title: "",
@@ -84,7 +93,7 @@ export default function QuizTab({ classId }) {
       alert("Quiz created successfully!")
     } catch (error) {
       console.error("Error creating quiz:", error)
-      alert("Error saving quiz")
+      alert(`Error saving quiz: ${error.message}`)
     }
   }
 
