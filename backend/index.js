@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import attendanceRoutes from './attendance/attendanceRoutes.js';
+import classRoutes from './routes/classes.js';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ mongoose
   });
 
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/classes', classRoutes);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
