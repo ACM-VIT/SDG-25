@@ -20,7 +20,7 @@ export default function ClassTabs({ classId, classData: initialClassData, active
     { id: 'overview', label: 'Overview' },
     { id: 'notes', label: 'Notes' },
     { id: 'attendance', label: 'Attendance' },
-    { id: 'quiz', label: 'Quiz/Assignments' },
+    { id: 'quiz', label: 'Quiz' },
     { id: 'announcements', label: 'Announcements' },
   ];
 
@@ -34,8 +34,8 @@ export default function ClassTabs({ classId, classData: initialClassData, active
             variant={activeTab === tab.id ? 'default' : 'outline'}
             className={`whitespace-nowrap ${
               activeTab === tab.id
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-transparent text-gray-700 border-gray-300 hover:bg-gray-100'
+                ? 'bg-[#FFD801] hover:bg-yellow-700 text-white'
+                : 'bg-transparent text-gray-700 border-gray-300 hover:bg-[#FBEFAF]'
             }`}
           >
             {tab.label}
@@ -82,14 +82,14 @@ function OverviewTab({ classId, classData }) {
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <div>
           <p className="text-gray-600 text-sm">Total Students</p>
-          <p className="text-3xl font-bold text-blue-600">
+          <p className="text-3xl font-bold black">
             {classData.students?.length || 0}
           </p>
         </div>
         <div>
           <p className="text-gray-600 text-sm mb-2">Class Code</p>
           <div className="flex items-center gap-2">
-            <p className="text-2xl font-mono font-bold text-gray-800">
+            <p className="text-2xl font-mono font-bold black">
               {classData.code}
             </p>
             <button
@@ -131,7 +131,7 @@ function OverviewTab({ classId, classData }) {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="bg-yellow-100 border border-blue-200 rounded-lg p-4 mb-6">
         <p className="text-sm text-gray-700">
           <strong>Share this code with your students</strong> so they can join
           your class. Students can enter this code in the "Join Class" section.

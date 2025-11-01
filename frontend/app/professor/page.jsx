@@ -37,43 +37,23 @@ export default function ProfessorDashboard() {
     setRefreshKey((prev) => prev + 1)
   }
 
-  const clearTestData = () => {
-    if (
-      confirm(
-        "Are you sure you want to clear ALL site data? This will remove all classes, notes, quizzes, announcements, and attendance records."
-      )
-    ) {
-      localStorage.removeItem("educonnect_classes")
-      localStorage.removeItem("educonnect_notes")
-      localStorage.removeItem("educonnect_quizzes")
-      localStorage.removeItem("educonnect_announcements")
-      localStorage.removeItem("educonnect_attendance")
-
-      setRefreshKey((prev) => prev + 1)
-      alert("All site data cleared successfully!")
-    }
-  }
-
   if (isLoading || !user || user.role !== "professor" || needsRoleSelection) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F1EBCA]">
       <ProfessorNav />
 
       <main className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">My Classes</h1>
+            <h1 className="text-3xl font-bold text-gray-800 z-10">My Classes</h1>
             <p className="text-gray-600 mt-1">Manage your classes and students</p>
             <p className="text-sm text-gray-700 mt-2">Signed in as <span className="font-medium">{user?.name ?? user?.email}</span></p>
           </div>
           <div className="flex gap-3">
-            <Button onClick={clearTestData} variant="outline" className="border-red-500 text-red-600 hover:bg-red-50">
-              Clear Test Data
-            </Button>
-            <Button onClick={() => setShowCreateModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={() => setShowCreateModal(true)} className="bg-[#FFD801] hover:bg-yellow-700 text-white">
               + Create Class
             </Button>
           </div>
