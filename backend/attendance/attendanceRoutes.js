@@ -1,5 +1,5 @@
 import express from 'express';
-import Attendance from 'models/attendance.js';
+import Attendance from '../models/attendance.js';
 
 const router = express.Router();
 
