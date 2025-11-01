@@ -132,7 +132,6 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    console.log('Fetching class with ID:', id);
     
     // Validate MongoDB ObjectId format
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
