@@ -74,7 +74,7 @@ export default function StudentClassPage() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F1EBCA]">
       <StudentNav student={user} />
 
       <main className="max-w-6xl mx-auto p-4 md:p-8">
@@ -82,7 +82,7 @@ export default function StudentClassPage() {
           <Button
             onClick={() => router.push("/student")}
             variant="outline"
-            className="mb-4 bg-transparent text-green-600 border-green-200 hover:bg-green-50"
+            className="mb-4 bg-transparent text-[#FFD801] border-[#FFD801] hover:bg-[#FBEFAF]"
           >
             ← Back to Classes
           </Button>

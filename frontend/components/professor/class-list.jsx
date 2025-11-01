@@ -58,7 +58,7 @@ export default function ClassList({ professorId }) {
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
       {classes.map((cls) => (
         <Link key={cls._id || cls.id} href={`/professor/class/${cls._id || cls.id}`}>
-          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer h-full">
+          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer h-full bg-[#FBEFAF]">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">{cls.name}</h3>
