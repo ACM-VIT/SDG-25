@@ -60,7 +60,6 @@ export const classAPI = {
       const response = await fetch(`/api/classes/${id}`);
       const data = await response.json();
 
-      console.log('API response:', { ok: response.ok, status: response.status, data });
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch class');
