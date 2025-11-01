@@ -16,7 +16,6 @@ export default function StudentClassList({ studentId }) {
         setLoading(true)
         const fetchedClasses = await classAPI.getStudentClasses(studentId)
         setClasses(fetchedClasses)
-        console.log('Student classes loaded from DB:', fetchedClasses)
       } catch (err) {
         console.error('Error fetching student classes:', err)
         setError(err.message)
