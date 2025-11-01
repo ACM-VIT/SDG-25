@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { dummyClasses } from "@/lib/dummy-data"
-import { classStorage } from "@/lib/storage"
+import { classAPI } from "@/lib/api/classes"
 import { Button } from "@/components/ui/button"
 import ProfessorNav from "@/components/professor-nav"
 import ClassTabs from "@/components/professor/class-tabs"
@@ -16,6 +15,7 @@ export default function ProfessorClassPage() {
 
   const [classData, setClassData] = useState(null)
   const [activeTab, setActiveTab] = useState("overview")
+  const [loading, setLoading] = useState(true)
   const { user, isLoading, needsRoleSelection } = useAuth()
 
   useEffect(() => {
@@ -37,27 +37,36 @@ export default function ProfessorClassPage() {
   }, [user, isLoading, needsRoleSelection, router])
 
   useEffect(() => {
-    if (!classId || !user || user.role !== "professor") return
+    async function fetchClass() {
+      if (!classId || !user || user.role !== "professor") return
 
-    let cls = classStorage.getById(classId)
-    if (!cls) {
-      cls = dummyClasses.find((c) => c.id === classId)
+      try {
+        setLoading(true)
+        const cls = await classAPI.getById(classId)
+        
+        const isOwner = cls && (cls.professorId === user.id || cls.professorId === user.email)
+
+        if (isOwner) {
+          setClassData(cls)
+        } else {
+          router.replace("/professor")
+        }
+      } catch (error) {
+        console.error("Error fetching class:", error)
+        router.replace("/professor")
+      } finally {
+        setLoading(false)
+      }
     }
 
-    const isOwner = cls && (cls.professorId === user.id || cls.professorId === user.email)
-
-    if (isOwner) {
-      setClassData(cls)
-    } else {
-      router.replace("/professor")
-    }
+    fetchClass()
   }, [classId, user, router])
 
   if (isLoading || needsRoleSelection || !user || user.role !== "professor") {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
 
-  if (!classData) {
+  if (loading || !classData) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
 
@@ -80,7 +89,7 @@ export default function ProfessorClassPage() {
           </p>
         </div>
 
-        <ClassTabs classId={classId} activeTab={activeTab} setActiveTab={setActiveTab} />
+        <ClassTabs classId={classId} classData={classData} activeTab={activeTab} setActiveTab={setActiveTab} />
       </main>
     </div>
   )

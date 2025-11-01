@@ -5,7 +5,7 @@ import React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { classStorage } from "@/lib/storage"
+import { classAPI } from "@/lib/api/classes"
 
 export default function CreateClassModal({
   onClose,
@@ -16,24 +16,29 @@ export default function CreateClassModal({
   const [className, setClassName] = useState("")
   const [error, setError] = useState("")
   const [createdClass, setCreatedClass] = useState(null)
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
+    setLoading(true)
 
     if (!className.trim()) {
       setError("Class name is required")
+      setLoading(false)
       return
     }
 
     try {
-      const newClass = classStorage.create(className.trim(), professorId, professorName)
+      const newClass = await classAPI.create(className.trim(), professorId, professorName)
       console.log("Created new class:", newClass)
       
       setCreatedClass(newClass)
     } catch (err) {
-      setError("Failed to create class. Please try again.")
+      setError(err.message || "Failed to create class. Please try again.")
       console.error("Error creating class:", err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -109,11 +114,11 @@ export default function CreateClassModal({
           )}
 
           <div className="flex gap-3">
-            <Button type="button" onClick={onClose} variant="outline" className="flex-1 bg-transparent">
+            <Button type="button" onClick={onClose} variant="outline" className="flex-1 bg-transparent" disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
-              Create Class
+            <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Class'}
             </Button>
           </div>
         </form>
