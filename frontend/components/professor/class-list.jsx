@@ -2,21 +2,49 @@
 
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
-import { dummyClasses } from "@/lib/dummy-data"
+import { classAPI } from "@/lib/api/classes"
 import Link from "next/link"
 
 export default function ClassList({ professorId }) {
   const [classes, setClasses] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    // normalize types (string/number) to avoid mismatches
-    const pid = String(professorId)
-    const professorClasses = dummyClasses.filter((c) => String(c.professorId) === pid)
-    setClasses(professorClasses)
-    console.log("dummyClasses:", dummyClasses)
-    console.log("professorClasses:", professorClasses)
-    console.log("professorId:", professorId)
+    async function fetchClasses() {
+      try {
+        setLoading(true)
+        const fetchedClasses = await classAPI.getProfessorClasses(professorId)
+        setClasses(fetchedClasses)
+        console.log("Loaded classes from DB:", fetchedClasses)
+      } catch (err) {
+        console.error("Error fetching classes:", err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (professorId) {
+      fetchClasses()
+    }
   }, [professorId])
+
+  if (loading) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-gray-600 text-lg">Loading classes...</p>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-red-600 text-lg">Error loading classes: {error}</p>
+      </Card>
+    )
+  }
 
   if (classes.length === 0) {
     return (
@@ -29,8 +57,8 @@ export default function ClassList({ professorId }) {
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
       {classes.map((cls) => (
-        <Link key={cls.id} href={`/professor/class/${cls.id}`}>
-          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer h-full">
+        <Link key={cls._id || cls.id} href={`/professor/class/${cls._id || cls.id}`}>
+          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer h-full bg-[#FBEFAF]">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">{cls.name}</h3>
@@ -41,7 +69,7 @@ export default function ClassList({ professorId }) {
             </div>
             <div className="space-y-2 text-sm text-gray-600">
               <p>
-                Students: <span className="font-semibold text-gray-800">{cls.students.length}</span>
+                Students: <span className="font-semibold text-gray-800">{cls.students?.length || 0}</span>
               </p>
               <p>
                 Created:{" "}

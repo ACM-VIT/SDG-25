@@ -5,35 +5,52 @@ import React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
-import { classStorage } from "@/lib/storage"
+import { classAPI } from "@/lib/api/classes"
 
 export default function JoinClassModal({ onClose, onClassJoined, studentId }) {
   const [classCode, setClassCode] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
+    setLoading(true)
 
     if (!classCode.trim()) {
       setError("Please enter a class code")
+      setLoading(false)
       return
     }
 
-    const cls = classStorage.getByCode(classCode.toUpperCase())
-    if (!cls) {
-      setError("Invalid class code. Please check and try again.")
+    if (classCode.length !== 6) {
+      setError("Class code must be 6 characters")
+      setLoading(false)
       return
     }
 
-    classStorage.joinClass(cls.id, studentId)
-    onClassJoined()
+    try {
+      const joinedClass = await classAPI.joinClass(classCode.toUpperCase(), studentId)
+      console.log('Successfully joined class:', joinedClass)
+      
+      onClassJoined()
+    } catch (err) {
+      console.error('Error joining class:', err)
+      setError(err.message || "Failed to join class. Please try again.")
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md p-6">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+      onClick={onClose}
+    >
+      <div 
+        className="w-full max-w-md bg-white rounded-xl shadow-lg p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Join a Class</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -56,15 +73,15 @@ export default function JoinClassModal({ onClose, onClassJoined, studentId }) {
           )}
 
           <div className="flex gap-3">
-            <Button type="button" onClick={onClose} variant="outline" className="flex-1 bg-transparent">
+            <Button type="button" onClick={onClose} variant="outline" className="flex-1 bg-transparent" disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white">
-              Join Class
+            <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled={loading}>
+              {loading ? "Joining..." : "Join Class"}
             </Button>
           </div>
         </form>
-      </Card>
+      </div>
     </div>
   )
 }
